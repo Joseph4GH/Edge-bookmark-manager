@@ -1,6 +1,9 @@
 import os
 import json
 import logging
+import requests
+import asyncio
+import aiohttp
 '''
 Edge书签管理器类
 方法名	功能
@@ -13,9 +16,7 @@ delete_bookmark	删除指定名称或 URL 的书签
 find_bookmark	查找书签，并返回匹配节点及其路径
 
 '''
-import os
-import json
-import logging
+
 
 
 # 设置日志
@@ -61,6 +62,59 @@ class EdgeBookmarkManager:
                 if 'children' in node:
                     self.print_bookmark_tree(node['children'], indent + 1, current_path)
 
+    def remove_invalid_bookmarks(self, nodes):
+        """
+        递归检查并删除书签中的无效链接
+        :param nodes: 当前处理的书签节点列表
+        """
+        i = 0
+        while i < len(nodes):
+            node = nodes[i]
+            if node.get('type') == 'url':
+                url = node.get('url')
+                try:
+                    response = requests.head(url, timeout=5, allow_redirects=True)
+                    if 200 <= response.status_code < 300:
+                        self.logger.debug(f"链接有效: {url}")
+                    else:
+                        self.logger.warning(f"发现失效链接: {node['name']} [{url}], 正在删除...")
+                        nodes.pop(i)
+                        continue
+                except requests.RequestException as e:
+                    self.logger.error(f"无法访问链接: {url}, 错误: {e}")
+                    nodes.pop(i)
+                    continue
+            elif node.get('type') == 'folder' and 'children' in node:
+                self.remove_invalid_bookmarks(node['children'])
+            i += 1
+
+    async def remove_invalid_bookmarks_async(self, nodes):
+        """异步清理失效的书签"""
+        tasks = []
+        for node in nodes:
+            if node.get('type') == 'url':
+                tasks.append(self.check_and_remove_url(node, nodes))
+            elif node.get('type') == 'folder' and 'children' in node:
+                await self.remove_invalid_bookmarks_async(node['children'])
+        await asyncio.gather(*tasks)
+
+    async def check_and_remove_url(self, node, nodes):
+        """异步检查 URL 并删除无效书签"""
+        url = node.get('url')
+        if not await self.is_url_valid_async(url):
+            self.logger.info(f"删除失效书签: {node.get('name')} [{url}]")
+            nodes.remove(node)
+
+    async def is_url_valid_async(self, url):
+        """异步检查 URL 是否有效"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.head(url, allow_redirects=True, timeout=5) as response:
+                    return response.status == 200
+        except Exception as e:
+            self.logger.warning(f"URL 无效: {url} ({e})")
+            return False
+        
     def update_bookmark_url(self, nodes, old_url, new_url):
         """递归更新书签URL"""
         for node in nodes:

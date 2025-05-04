@@ -8,8 +8,9 @@ if __name__ == "__main__":
        # 加载 Default 配置文件
     manager_default = bm.EdgeBookmarkManager(profile_name="Default")
     data_default = manager_default.load_bookmarks()
+    manager_default.remove_invalid_bookmarks(data_default['roots']['bookmark_bar']['children'])
     manager_default.print_bookmark_tree(data_default['roots']['bookmark_bar']['children'])
-    #manager_default.save_bookmarks(data_default)
+    manager_default.save_bookmarks(data_default)
 
     # 加载 Profile 1 配置文件
     '''

@@ -18,7 +18,6 @@ find_bookmark	查找书签，并返回匹配节点及其路径
 '''
 
 
-
 # 设置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -52,7 +51,11 @@ class EdgeBookmarkManager:
         self.logger.info("书签文件已保存")
 
     def print_bookmark_tree(self, nodes, indent=0, path=""):
-        """递归打印书签树，并显示路径"""
+        """递归打印书签树，并显示路径
+        :param nodes: 当前层级的书签节点列表
+        :param indent: 当前缩进级别
+        :param path: 当前路径
+        """
         for node in nodes:
             current_path = f"{path} > {node.get('name')}" if path else node.get('name')
             if node.get('type') == 'url':
@@ -90,20 +93,13 @@ class EdgeBookmarkManager:
         except Exception as e:
             self.logger.warning(f"URL 无效: {url} ({e})")
             return False
-    '''
-    if __name__ == "__main__":
-    manager = bm.EdgeBookmarkManager(profile_name="Default")
-    data = manager.load_bookmarks()
 
-    # 异步清理失效书签
-    asyncio.run(manager.remove_invalid_bookmarks_async(data['roots']['bookmark_bar']['children']))
-
-    # 打印书签树并保存
-    manager.print_bookmark_tree(data['roots']['bookmark_bar']['children'])
-    manager.save_bookmarks(data)
-    '''   
     def update_bookmark_url(self, nodes, old_url, new_url):
-        """递归更新书签URL"""
+        """递归函数,用于更新书签树中的指定URL
+        :param nodes: 当前层级的书签节点列表
+        :param target_name: 要删除的书签名称(可选）
+        :param target_url: 要删除的书签URL(可选）
+        """
         for node in nodes:
             if node.get('type') == 'url' and node.get('url') == old_url:
                 node['url'] = new_url
@@ -112,7 +108,11 @@ class EdgeBookmarkManager:
                 self.update_bookmark_url(node['children'], old_url, new_url)
 
     def delete_bookmark(self, nodes, target_name=None, target_url=None):
-        """递归删除书签"""
+        """递归删除书签
+        :param nodes: 当前层级的书签节点列表
+        :param target_name: 要删除的书签名称(可选）
+        :param target_url: 要删除的书签URL(可选）
+        """
         i = 0
         while i < len(nodes):
             node = nodes[i]
@@ -127,7 +127,13 @@ class EdgeBookmarkManager:
             i += 1
 
     def find_bookmark(self, nodes, target_name=None, target_url=None, return_first=True):
-        """递归查找书签并记录路径"""
+        """递归查找匹配的书签节点并记录路径
+        :param nodes: 当前层级的书签节点列表
+        :param target_name: 要查找的书签名称（可选）
+        :param target_url: 要查找的书签URL（可选）
+        :param return_first: 如果为 True，返回第一个匹配项；否则返回所有匹配项的列表
+        :return: 匹配到的书签节点（dict）或列表（list），如果没有找到则返回 None 或空列表
+        """
         results = []
 
         def recursive_search(current_nodes, path=""):

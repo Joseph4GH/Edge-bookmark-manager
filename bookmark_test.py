@@ -21,11 +21,22 @@ if __name__ == "__main__":
     manager_profile1.save_bookmarks(data_profile1)
     '''
 
-    # 查找书签并获取路径
+    # 查找第一个匹配书签并获取路径
     result = manager_default.find_bookmark(data_default['roots']['bookmark_bar']['children'], target_name="车生活", return_first=True)
     if result:
         print(f"\n找到书签: {result['node']}，路径为: {result['path']}")
-
+    else:
+        print("未找到指定书签")
+    
+    # 查找所有匹配的书签
+    results =  manager_default(data_default['roots']['other']['children'], target_url="https://example.com", return_first=False)
+    if results:
+        print("找到以下书签:")
+        for bm in results:
+            print(bm)
+    else:
+        print("未找到指定URL的书签")
+    
     # 异步清理失效书签
     asyncio.run(manager_default.remove_invalid_bookmarks_async(data_default['roots']['bookmark_bar']['children']))
 
@@ -42,8 +53,14 @@ if __name__ == "__main__":
                                 "https://wx.qq.com/",
                                 "https://wx.qq.com/index.html")
 
+    # 更新其他书签中的URL
+    manager_default.update_bookmark_url(data_default['roots']['other']['children'], 
+                                        "https://old-url.com", 
+                                        "https://new-url.com")  
+   
     # 删除书签示例
-    manager_default.delete_bookmark(data_default['roots']['bookmark_bar']['children'], target_name="软件下载页面 - 射频技术学习")
+    manager_default.delete_bookmark(data_default['roots']['bookmark_bar']['children'], target_name="软件下载页面 - 射频技术学习",target_url=None)
+    #manager_default.delete_bookmark(data_default['roots']['bookmark_bar']['children'], target_url="https://example.com")
 
-    # 保存修改
+    # 将修改后的书签写回文件,保存修改
     manager_default.save_bookmarks(data_default)

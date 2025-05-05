@@ -61,33 +61,7 @@ class EdgeBookmarkManager:
                 print('  ' * indent + f"├─ {node.get('name')}")
                 if 'children' in node:
                     self.print_bookmark_tree(node['children'], indent + 1, current_path)
-
-    def remove_invalid_bookmarks(self, nodes):
-        """
-        递归检查并删除书签中的无效链接
-        :param nodes: 当前处理的书签节点列表
-        """
-        i = 0
-        while i < len(nodes):
-            node = nodes[i]
-            if node.get('type') == 'url':
-                url = node.get('url')
-                try:
-                    response = requests.head(url, timeout=5, allow_redirects=True)
-                    if 200 <= response.status_code < 300:
-                        self.logger.debug(f"链接有效: {url}")
-                    else:
-                        self.logger.warning(f"发现失效链接: {node['name']} [{url}], 正在删除...")
-                        nodes.pop(i)
-                        continue
-                except requests.RequestException as e:
-                    self.logger.error(f"无法访问链接: {url}, 错误: {e}")
-                    nodes.pop(i)
-                    continue
-            elif node.get('type') == 'folder' and 'children' in node:
-                self.remove_invalid_bookmarks(node['children'])
-            i += 1
-
+    
     async def remove_invalid_bookmarks_async(self, nodes):
         """异步清理失效的书签"""
         tasks = []
@@ -108,13 +82,26 @@ class EdgeBookmarkManager:
     async def is_url_valid_async(self, url):
         """异步检查 URL 是否有效"""
         try:
+            # 设置超时时间为10秒
+            timeout=aiohttp.ClientTimeout(total=10)
             async with aiohttp.ClientSession() as session:
-                async with session.head(url, allow_redirects=True, timeout=5) as response:
+                async with session.head(url, allow_redirects=True, timeout=timeout) as response:
                     return response.status == 200
         except Exception as e:
             self.logger.warning(f"URL 无效: {url} ({e})")
             return False
-        
+    '''
+    if __name__ == "__main__":
+    manager = bm.EdgeBookmarkManager(profile_name="Default")
+    data = manager.load_bookmarks()
+
+    # 异步清理失效书签
+    asyncio.run(manager.remove_invalid_bookmarks_async(data['roots']['bookmark_bar']['children']))
+
+    # 打印书签树并保存
+    manager.print_bookmark_tree(data['roots']['bookmark_bar']['children'])
+    manager.save_bookmarks(data)
+    '''   
     def update_bookmark_url(self, nodes, old_url, new_url):
         """递归更新书签URL"""
         for node in nodes:
